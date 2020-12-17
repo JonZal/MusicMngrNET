@@ -1,1 +1,3 @@
 # MusicMngrNET
+
+Music Management project
