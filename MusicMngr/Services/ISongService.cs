@@ -10,10 +10,11 @@ namespace MusicMngr.Services
     public interface ISongService
     {
         SongDTO GetSong(int id);
-        ICollection<SongDTO> GetSongs();
-        Task<SongDTO> PostSong(int userId, int plaulistId, Models.Song song);
-        Task<SongDTO> PutSong(int id, Models.Song song);
-        Task<Models.Song> DeleteSong(int id);
-        bool UserOwnsSong(int songId, int userId);
+        SongDTO GetSong(int userId, int playlistId, int id);
+        ICollection<SongDTO> GetSongs(int userId, int playlistId);
+        Task<SongDTO> PostSong(int userId, int plaulistId, SongDTO song);
+        Task<SongDTO> PutSong(int userId, int playlistId, int id, SongDTO song);
+        Task<Models.Song> DeleteSong(int userId, int playlistId, int id);
+        bool UserOwnsSong(int userId, int playlistId, int songId);
     }
 }

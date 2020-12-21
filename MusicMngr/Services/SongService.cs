@@ -20,12 +20,25 @@ namespace MusicMngr.Services
 
         public SongDTO GetSong(int id)
         {
-            return GetSongs().FirstOrDefault(c => c.Id == id);
+            var gotSong = _context.Songs.Where(a => (a.Id == id))
+                .Select(song => new SongDTO
+                {
+                    Id = song.Id,
+                    Name = song.Name,
+                    Author = song.Author,
+                    PlaylistId = song.Playlist.Id,
+                    UserId = song.User.Id
+                }).FirstOrDefault();
+            return gotSong;
+        }
+        public SongDTO GetSong(int userId, int playlistId, int id)
+        {
+            return GetSongs(userId, playlistId).FirstOrDefault(c => c.Id == id);
         }
 
-        public ICollection<SongDTO> GetSongs()
+        public ICollection<SongDTO> GetSongs(int userId, int playlistId)
         {
-            var songs = _context.Songs.Include(c => c.Playlist).Include(c => c.User)
+            var songs = _context.Songs.Where(a => (a.User.Id == userId && a.Playlist.Id == playlistId)).Include(c => c.Playlist).Include(c => c.User)
             .Select(song => new SongDTO
             {
                 Id = song.Id,
@@ -37,28 +50,31 @@ namespace MusicMngr.Services
             return songs;
         }
 
-        public async Task<SongDTO> PostSong(int userId, int plaulistId, MusicMngr.Models.Song song)
+        public async Task<SongDTO> PostSong(int userId, int plaulistId, SongDTO song)
         {
             MusicUser user = _context.MusicUsers.FirstOrDefault(u => u.Id == userId);
+            Models.Song newSong = new Models.Song();
             if (user == null)
             {
                 return null;
             }
-            song.User = user;
-            MusicMngr.Models.Playlist playlist = _context.Playlists.FirstOrDefault(a => a.Id == plaulistId);
+            newSong.User = user;
+            Models.Playlist playlist = _context.Playlists.FirstOrDefault(a => a.Id == plaulistId);
             if (playlist == null)
             {
                 return null;
             }
-            song.Playlist = playlist;
-            await _context.Songs.AddAsync(song);
+            newSong.Playlist = playlist;
+            newSong.Name = song.Name;
+            newSong.Author = song.Author;
+            await _context.Songs.AddAsync(newSong);
             await _context.SaveChangesAsync();
-            return GetSong((int)song.Id);
+            return GetSong(userId, plaulistId, (int)newSong.Id);
         }
 
-        public async Task<SongDTO> PutSong(int id, MusicMngr.Models.Song song)
+        public async Task<SongDTO> PutSong(int userId, int playlistId, int id, SongDTO song)
         {
-            MusicMngr.Models.Song existingSong = _context.Songs.FirstOrDefault(c => c.Id == id);
+            Models.Song existingSong = _context.Songs.Where(a => (a.Playlist.Id == playlistId && a.User.Id == userId)).FirstOrDefault(c => c.Id == id);
             if (existingSong == null)
             {
                 return null;
@@ -66,14 +82,26 @@ namespace MusicMngr.Services
             if (song.Name != null)
             {
                 existingSong.Name = song.Name; 
-            }            
+            }
+            if (song.Author != null)
+            {
+                existingSong.Author = song.Author;
+            }
+            if (song.PlaylistId > 0)
+            {
+                existingSong.Playlist = _context.Playlists.Where(a => a.Id == song.PlaylistId).FirstOrDefault();
+            }
+            if (song.UserId > 0)
+            {
+                existingSong.User = _context.MusicUsers.Where(a => a.Id == song.UserId).FirstOrDefault();
+            }
             _context.Attach(existingSong).State = EntityState.Modified;
             await _context.SaveChangesAsync();
-            return GetSong(id);
+            return GetSong((int)song.UserId, (int)song.PlaylistId, id);
         }
-        public async Task<MusicMngr.Models.Song> DeleteSong(int id)
+        public async Task<Models.Song> DeleteSong(int userId, int playlistId, int id)
         {
-            MusicMngr.Models.Song song = _context.Songs.FirstOrDefault(c => c.Id == id);
+            Models.Song song = _context.Songs.Where(a => (a.User.Id == userId && a.Playlist.Id == playlistId)).FirstOrDefault(c => c.Id == id);
             if (song == null)
             {
                 return null;
@@ -82,9 +110,9 @@ namespace MusicMngr.Services
             await _context.SaveChangesAsync();
             return song;
         }
-        public bool UserOwnsSong(int songId, int userId)
+        public bool UserOwnsSong(int userId, int playlistId, int songId)
         {
-            var song = GetSong(songId);
+            var song = GetSong(userId, playlistId, songId);
 
             if (song == null)
             {

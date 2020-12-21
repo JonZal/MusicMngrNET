@@ -19,6 +19,5 @@ namespace MusicMngr.Models
         public byte[] PasswordHash { get; set; }
         public byte[] PasswordSalt { get; set; }
         public ICollection<Playlist> Playlists { get; set; }
-        public ICollection<Song> Songs { get; set; }
     }
 }

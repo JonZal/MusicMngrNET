@@ -83,6 +83,15 @@ namespace MusicMngr.Services
 
             return await GenerateAuthenticationResultForUserAsync(newUser);
         }
+
+        private long genNextUserId()
+        {
+            var id = (from a in _context.MusicUsers
+                      select a.Id).Max();
+
+            return id;
+        }
+
         public async Task<AuthenticationDTO> RefreshTokenAsync(string token, string refreshToken)
         {
             var validatedToken = GetPrincipalFromToken(token);
@@ -154,31 +163,30 @@ namespace MusicMngr.Services
         }
         public ICollection<MusicUserDTO> GetMusicUsers()
         {
-            var songs = GetSongs();
-            var Playlists = GetPlaylists();
+          //  var songs = GetSongs();
+           // var Playlists = GetPlaylists();
             var users = _context.MusicUsers
             .Select(user => new MusicUserDTO
             {
                 Id = user.Id,
                 Name = user.Name,
                 Username = user.Username,
-                Playlists = null,//Playlists.Where(a => a.UserId == user.Id).ToList(),
-                Songs = null,//songs.Where(c => c.UserId == user.Id).ToList(),
+                PlaylistIds = user.Playlists.Select(c => c.Id).ToList(),//Playlists.Where(a => a.UserId == user.Id).ToList(),
                 Role = user.Role
             }).ToList();
             return users;
         }
         public ICollection<PlaylistDTO> GetUserPlaylists(int id)
         {
-            var songs = GetSongs();
-            var Playlists = _context.Playlists.Include(a => a.User)
+            //var songs = GetSongs();
+            var Playlists = _context.Playlists//.Include(a => a.User)
             .Select(playlist => new PlaylistDTO
             {
-                Id = playlist.Id,
+                //Id = playlist.Id,
                 Title = playlist.Title,
                 Description = playlist.Description,
-                UserId = playlist.User.Id,
-                Songs = null//songs.Where(c => c.PlaylistId == playlist.Id).AsQueryable().ToList()
+                //UserId = playlist.User.Id,
+                //Songs = null//songs.Where(c => c.PlaylistId == playlist.Id).AsQueryable().ToList()
             }).Where(a => a.UserId == id).ToList();
             return Playlists;
         }
@@ -197,7 +205,7 @@ namespace MusicMngr.Services
         }
         private ICollection<PlaylistDTO> GetPlaylists()
         {
-            var songs = GetSongs();
+            //var songs = GetSongs();
             var Playlists = _context.Playlists//.Include(a => a.User)
             .Select(playlist => new PlaylistDTO
             {
@@ -209,7 +217,7 @@ namespace MusicMngr.Services
             }).ToList();
             return Playlists;
         }
-        public ICollection<SongDTO> GetUserSongss(int id)
+        /*public ICollection<SongDTO> GetUserSongss(int id)
         {
             var songs = _context.Songs.Include(c => c.Playlist).Include(c => c.User)
             .Select(song => new SongDTO
@@ -221,24 +229,24 @@ namespace MusicMngr.Services
                 UserId = song.User.Id
             }).Where(c => c.UserId == id).ToList();
             return songs;
-        }
-        public ICollection<SongDTO> GetUserPlaylistSongs(int userId, int playllistId)
+        }*/
+        /*public ICollection<SongDTO> GetUserPlaylistSongs(int userId, int playlistId)
         {
             var songs = GetUserPlaylists(userId)
-            .FirstOrDefault(a => a.Id == playllistId)
+            .FirstOrDefault(a => a.Id == playlistId)
             .Songs.ToList();
             if (songs == null)
             {
                 return null;
             }
             return songs;
-        }
+        }*/
         public async Task PostUser(MusicUser user)
         {
             await _context.MusicUsers.AddAsync(user);
             await _context.SaveChangesAsync();
         }
-        public async Task<MusicUserDTO> PutUser(int id, MusicUser user)
+        public async Task<MusicUserDTO> PutUser(int id, MusicUserDTO user)
         {
             MusicUser existingUser = _context.MusicUsers.FirstOrDefault(u => u.Id == id);
             if (existingUser == null)
@@ -252,6 +260,27 @@ namespace MusicMngr.Services
             if (user.Username != null)
             {
                 existingUser.Username = user.Username;
+            }
+            if (user.Role != null)
+            {
+                existingUser.Role = user.Role;
+            }
+            if (user.PlaylistIds != null)
+            {
+                var newPlaylistList = new List<Models.Playlist>();
+                foreach (long ids in user.PlaylistIds)
+                {
+                    var newPlay = _context.Playlists.Where(a => a.Id == ids).Select(playlist => new Models.Playlist
+                    {
+                        Id = playlist.Id,
+                        Title = playlist.Title,
+                        Description = playlist.Description,
+                        User = playlist.User,
+                        Songs = playlist.Songs
+                    }).FirstOrDefault();
+                    newPlaylistList.Add(newPlay);
+                }
+                existingUser.Playlists = newPlaylistList;
             }
             _context.Attach(existingUser).State = EntityState.Modified;
             await _context.SaveChangesAsync();

@@ -15,9 +15,9 @@ namespace MusicMngr.Services
         MusicUserDTO GetMusicUser(long id);
         ICollection<MusicUserDTO> GetMusicUsers();
         ICollection<PlaylistDTO> GetUserPlaylists(int id);
-        ICollection<SongDTO> GetUserPlaylistSongs(int userId, int playlistId);
+        //ICollection<SongDTO> GetUserPlaylistSongs(int userId, int playlistId);
         Task PostUser(MusicUser user);
-        Task<MusicUserDTO> PutUser(int id, MusicUser user);
+        Task<MusicUserDTO> PutUser(int id, MusicUserDTO user);
         Task<MusicUser> DeleteUser(int id);
         bool isSameUser(int id, string userId);
     }

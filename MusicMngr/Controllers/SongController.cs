@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 namespace MusicMngr.Controllers
 {
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Produces("application/json")]
     [ApiController]
     [Route("api/v1/Users/{userId}/Playlists/{playlistId}/")]
     public class SongController : ControllerBase
@@ -24,30 +25,35 @@ namespace MusicMngr.Controllers
         {
             _songService = songService;
         }
-
-        [Authorize(Roles = Role.Admin)]
+        
         [HttpGet]
         [Route("Songs")]
-        public ActionResult<ICollection<SongDTO>> Get()
+        public ActionResult<ICollection<SongDTO>> Get(int userId, int playlistId)
         {
-            return Ok(_songService.GetSongs());
+            var songs = _songService.GetSongs(userId, playlistId);
+            if(songs.Count <= 0)
+            {
+                return NotFound();
+            }
+            return Ok(songs);
         }
 
+        // [Authorize(Roles = Role.User)]
         [HttpGet]
         [Route("Songs/{id}")]
         public ActionResult<SongDTO> Get(int userId, int playlistId, int id)
         {
             //var userId = HttpContext.User.Claims.Single(x => x.Type == "id").Value;
-            var userOwnsPost = _songService.UserOwnsSong(id, userId);
+            /*var userOwnsPost = _songService.UserOwnsSong(userId, playlistId, id);
             if (!userOwnsPost)
             {
-                return BadRequest(new ErrorResponse(new ErrorMessage { Message = "You do not own this song" }));
-            }
+                return Unauthorized(); // BadRequest(new ErrorResponse(new ErrorMessage { Message = "You do not own this song" }));
+            }*/
             if (id <= 0)
             {
                 return NotFound();
             }
-            SongDTO song = _songService.GetSong(id);
+            SongDTO song = _songService.GetSong(userId, playlistId, id);
             if (song == null)
             {
                 return NotFound();
@@ -55,33 +61,52 @@ namespace MusicMngr.Controllers
             return Ok(song);
         }
 
+        /// <summary>
+        /// Creates a Song.
+        /// </summary>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     POST /Song
+        ///     {
+        ///        "name": "Song Name",
+        ///        "author": "Test Author"
+        ///     }
+        ///
+        /// </remarks>
+        /// <param name="item"></param>
+        /// <returns>A newly created TodoItem</returns>
+        /// <response code="201">Returns the newly created item</response>
+        /// <response code="403">The user doesn't have access</response> 
         [HttpPost]
         [Route("Songs")]
-        public async Task<ActionResult<SongDTO>> Post(int userId, int playlistId, [FromBody] Models.Song song)
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<ActionResult<SongDTO>> Post(int userId, int playlistId, [FromBody] SongDTO song)
         {
-            if (song == null)
+            if (song.Author == null && song.Name == null && song.PlaylistId <= 0 && song.UserId <= 0)
             {
-                return NotFound();
+                return BadRequest();
             }
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return BadRequest();
             }
 
             var newSong = await _songService.PostSong(userId, playlistId, song);
-            return Ok(newSong);
+            return Created(String.Format("/Users/{0}/Playlists/{1}/Songs{2}", userId, playlistId, newSong.Id), newSong);
         }
 
         [HttpPut]
         [Route("Songs/{id}")]
-        public async Task<ActionResult<SongDTO>> Put(int userId, int playlistId, int id, [FromBody] Models.Song song)
+        public async Task<ActionResult<SongDTO>> Put(int userId, int playlistId, int id, [FromBody] SongDTO song)
         {
             //var userId = HttpContext.User.Claims.Single(x => x.Type == "id").Value;
-            var userOwnsPost = _songService.UserOwnsSong(id, userId);
+            /*var userOwnsPost = _songService.UserOwnsSong(userId, playlistId, id);
             if (!userOwnsPost)
             {
-                return BadRequest(new ErrorResponse(new ErrorMessage { Message = "You do not own this song" }));
-            }
+                return Unauthorized(); // BadRequest(new ErrorResponse(new ErrorMessage { Message = "You do not own this song" }));
+            }*/
             if (song == null)
             {
                 return NotFound();
@@ -90,8 +115,9 @@ namespace MusicMngr.Controllers
             {
                 return BadRequest(ModelState);
             }
-            var newSong = await _songService.PutSong(id, song);
-            return Ok(newSong);
+            var newSong = await _songService.PutSong(userId, playlistId, id, song);
+            var checkSong = _songService.GetSong(id);
+            return Ok(checkSong);
         }
 
         [HttpDelete]
@@ -99,17 +125,22 @@ namespace MusicMngr.Controllers
         public async Task<ActionResult> Delete(int userId, int playlistId, int id)
         {
             //var userId = HttpContext.User.Claims.Single(x => x.Type == "id").Value;
-            var userOwnsPost = _songService.UserOwnsSong(id, userId);
+            /*var userOwnsPost = _songService.UserOwnsSong(userId, playlistId, id);
             if (!userOwnsPost)
             {
-                return BadRequest(new ErrorResponse(new ErrorMessage { Message = "You do not own this song" }));
-            }
+                return Unauthorized();  //BadRequest(new ErrorResponse(new ErrorMessage { Message = "You do not own this song" }));
+            }*/
             if (id <= 0)
             {
                 return NotFound();
             }
-            var deletedSong = await _songService.DeleteSong(id);
-            return Ok(deletedSong);
+            var song = _songService.GetSong(userId, playlistId, id);
+            if(song == null)
+            {
+                return NotFound();
+            }
+            var deletedSong = await _songService.DeleteSong(userId, playlistId, id);
+            return NoContent();
         }
 
         private ActionResult BadRequest(ErrorResponse errorResponse)

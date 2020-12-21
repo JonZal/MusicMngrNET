@@ -16,6 +16,7 @@ using MusicMngr.Services;
 namespace MusicMngr.Controllers
 {
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Produces("application/json")]
     [Route("api/v1/Users/{userId}/")]
     [ApiController]
     public class PlaylistsController : ControllerBase
@@ -58,50 +59,50 @@ namespace MusicMngr.Controllers
                 return Ok(playlist);
             }
 
-           /* [HttpGet]
-            [Route("Playlists/{id}/Songs")]
-            public ActionResult<IEnumerable<SongDTO>> GetPlaylistSongs(int userId, int id)
-            {
-                //var userId = HttpContext.User.Claims.Single(x => x.Type == "id").Value;
-                // var userOwnsPost = _playlistService.UserOwnsPlaylist(id, userId);
-                // if (!userOwnsPost)
-                // {
-                //     return BadRequest(new ErrorResponse(new ErrorModel { Message = "You do not own this playlist" }));
-                // }
-                var songs = _playlistService.GetPlaylistSongs(userId, id);
-                if (songs == null)
-                {
-                    return NotFound();
-                }
-                return Ok(songs);
-            }*/
+        /* [HttpGet]
+         [Route("Playlists/{id}/Songs")]
+         public ActionResult<IEnumerable<SongDTO>> GetPlaylistSongs(int userId, int id)
+         {
+             //var userId = HttpContext.User.Claims.Single(x => x.Type == "id").Value;
+             // var userOwnsPost = _playlistService.UserOwnsPlaylist(id, userId);
+             // if (!userOwnsPost)
+             // {
+             //     return BadRequest(new ErrorResponse(new ErrorModel { Message = "You do not own this playlist" }));
+             // }
+             var songs = _playlistService.GetPlaylistSongs(userId, id);
+             if (songs == null)
+             {
+                 return NotFound();
+             }
+             return Ok(songs);
+         }*/
 
-          /*  [HttpGet]
-            [Route("Playlists/{playlistId}/Songs/{songId}")]
-            public ActionResult<SongDTO> GetPlaylistSong(int userId, int playlistId, int songId)
-            {
-               // var userId = HttpContext.User.Claims.Single(x => x.Type == "id").Value;
-                var userOwnsPost = _playlistService.UserOwnsPlaylist(playlistId, userId);
-                if (!userOwnsPost)
-                {
-                    return BadRequest(new ErrorResponse(new ErrorMessage { Message = "You do not own this playlist" }));
-                }
-                if (playlistId <= 0 || songId <= 0)
-                {
-                    return BadRequest();
-                }
-                SongDTO song = _playlistService.GetPlaylistSongs(userId, playlistId)
-                .FirstOrDefault(c => c.Id == songId);
-                if (song == null)
-                {
-                    return NotFound();
-                }
-                return Ok(song);
-            }*/
+        /*  [HttpGet]
+          [Route("Playlists/{playlistId}/Songs/{songId}")]
+          public ActionResult<SongDTO> GetPlaylistSong(int userId, int playlistId, int songId)
+          {
+             // var userId = HttpContext.User.Claims.Single(x => x.Type == "id").Value;
+              var userOwnsPost = _playlistService.UserOwnsPlaylist(playlistId, userId);
+              if (!userOwnsPost)
+              {
+                  return BadRequest(new ErrorResponse(new ErrorMessage { Message = "You do not own this playlist" }));
+              }
+              if (playlistId <= 0 || songId <= 0)
+              {
+                  return BadRequest();
+              }
+              SongDTO song = _playlistService.GetPlaylistSongs(userId, playlistId)
+              .FirstOrDefault(c => c.Id == songId);
+              if (song == null)
+              {
+                  return NotFound();
+              }
+              return Ok(song);
+          }*/
 
             [HttpPost]
             [Route("Playlists")]
-            public async Task<ActionResult> Post(int userId, [FromBody] Models.Playlist playlist)
+            public async Task<ActionResult> Post(int userId, [FromBody] PlaylistDTO playlist)
             {
                 if (playlist == null)
                 {
@@ -109,36 +110,39 @@ namespace MusicMngr.Controllers
                 }
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest(ModelState);
+                    return BadRequest();
                 }
                 var newPlaylist = await _playlistService.PostPlaylist(userId, playlist);
                 if (newPlaylist == null)
                 {
                     return NotFound();
                 }
-                return Ok(_playlistService.GetPlaylist(userId, (int)newPlaylist.Id));
+                //return Ok(_playlistService.GetPlaylist(userId, (int)newPlaylist.Id));
+                return Created(String.Format("/Users/{0}/Playlists/{1}", userId, newPlaylist.Id), newPlaylist);
             }
 
             [HttpPut]
             [Route("Playlists/{id}")]
-            public async Task<ActionResult> Put(int userId, int id, [FromBody] Models.Playlist playlist)
+            public async Task<ActionResult> Put(int userId, int id, [FromBody] PlaylistDTO playlist)
             {
                 //var userId = HttpContext.User.Claims.Single(x => x.Type == "id").Value;
                 var userOwnsPost = _playlistService.UserOwnsPlaylist(id, userId);
                 if (!userOwnsPost)
                 {
-                    return BadRequest(new ErrorResponse(new ErrorMessage { Message = "You do not own this playlist" }));
+                    return NotFound();// new ErrorResponse(new ErrorMessage { Message = "You do not own this playlist" }));
                 }
-                if (playlist == null)
+                PlaylistDTO playlistExists = _playlistService.GetPlaylists(userId).FirstOrDefault(a => a.Id == id);
+                if (playlistExists == null)
                 {
                     return NotFound();
                 }
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest(ModelState);
+                    return BadRequest();
                 }
                 var newPlaylist = await _playlistService.PutPlaylist(userId, id, playlist);
-                return Ok(newPlaylist);
+                playlistExists = _playlistService.GetPlaylists(userId).FirstOrDefault(a => a.Id == id);
+                return Ok(playlistExists);
             }
 
             [HttpDelete]
@@ -149,14 +153,14 @@ namespace MusicMngr.Controllers
                 var userOwnsPost = _playlistService.UserOwnsPlaylist(id, userId);
                 if (!userOwnsPost)
                 {
-                    return BadRequest(new ErrorResponse(new ErrorMessage { Message = "You do not own this playlist" }));
+                    return NotFound();// new ErrorResponse(new ErrorMessage { Message = "You do not own this playlist" }));
                 }
                 if (id <= 0)
                 {
                     return NotFound();
                 }
                 var deletedPlaylist = await _playlistService.DeletePlaylist(userId, id);
-                return Ok(deletedPlaylist);
+                return NoContent();
             }
 
             ~PlaylistsController()

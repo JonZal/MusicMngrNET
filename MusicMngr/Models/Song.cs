@@ -14,7 +14,7 @@ namespace MusicMngr.Models
         public long Id { get; set; }
         public string Name { get; set; }
         public string Author { get; set; }
-        public MusicUser User { get; set; }
+        public MusicUser User{ get; set; }
         public Playlist Playlist { get; set; }
     }
 }

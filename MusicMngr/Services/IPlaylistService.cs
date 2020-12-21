@@ -10,8 +10,8 @@ namespace MusicMngr.Services
         PlaylistDTO GetPlaylist(int userId, int id);
         ICollection<PlaylistDTO> GetPlaylists(int userId);
         ICollection<SongDTO> GetPlaylistSongs(int userId, int id);
-        Task<PlaylistDTO> PostPlaylist(int userId, Models.Playlist playlist);
-        Task<PlaylistDTO> PutPlaylist(int userId, int id, Models.Playlist playlist);
+        Task<PlaylistDTO> PostPlaylist(int userId, PlaylistDTO playlist);
+        Task<PlaylistDTO> PutPlaylist(int userId, int id, PlaylistDTO playlist);
         Task<Models.Playlist> DeletePlaylist(int userId, int id);
         bool UserOwnsPlaylist(int playlistId, int userId);
     }

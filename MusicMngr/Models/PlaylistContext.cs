@@ -15,7 +15,7 @@ namespace MusicMngr.Models
 
         public DbSet<Playlist> Playlists { get; set; }
 
-        public DbSet<MusicMngr.DTO.PlaylistDTO> PlaylistDTO { get; set; }
+        public DbSet<DTO.PlaylistDTO> PlaylistDTO { get; set; }
 
     }
 }
